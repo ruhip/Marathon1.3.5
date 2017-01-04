@@ -118,9 +118,11 @@ trait Formats
 
   implicit lazy val TaskWrites: Writes[Task] = Writes { task =>
     val base = Json.obj(
+      "ContainerName" -> task.mesosStatus.fold("task_containerid_none")(_.getTaskContainerId),
       "id" -> task.taskId,
       "slaveId" -> task.agentInfo.agentId,
       "host" -> task.agentInfo.host,
+      "message" -> task.mesosStatus.fold("task_message_test")(_.getMessage),
       "state" -> task.mesosStatus.fold(mesos.TaskState.TASK_STAGING)(_.getState)
     )
 
