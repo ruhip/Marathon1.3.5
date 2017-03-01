@@ -185,21 +185,21 @@ class MarathonSchedulerActor private (
     case cmd @ RestartTasks(appId, tasks) =>
       log.info(s"froad:api enter RestartTasks");
       val origSender = sender()
-      //withLockFor(appId) {
-      val res = async {
-        /**
-          * await(killService.killTasks(tasks, TaskKillReason.KillingTasksViaApi))
-          * val app = await(appRepository.currentVersion(appId))
-          * app.foreach(schedulerActions.scale(driver, _))
-          */
-        log.info(s"froad:api enter RestartTask2");
-        await(killService.restartTasks(tasks, TaskKillReason.RestartTasksViaApi))
-        val app = await(appRepository.currentVersion(appId))
-      }
+      withLockFor(appId) {
+        val res = async {
+          /**
+            * await(killService.killTasks(tasks, TaskKillReason.KillingTasksViaApi))
+            * val app = await(appRepository.currentVersion(appId))
+            * app.foreach(schedulerActions.scale(driver, _))
+            */
+          await(killService.restartTasks(tasks, TaskKillReason.RestartTasksViaApi))
+          val app = await(appRepository.currentVersion(appId))
+          log.info(s"froad:api enter RestartTask2")
+        }
 
-      res onComplete { _ =>
-        self ! cmd.answer // unlock app
-        //}
+        res onComplete { _ =>
+          self ! cmd.answer // unlock app
+        }
 
         res.sendAnswer(origSender, cmd)
       }
@@ -220,6 +220,8 @@ class MarathonSchedulerActor private (
     case AppScaled(id) => lockedApps -= id
 
     case TasksKilled(appId, _) => lockedApps -= appId
+
+    case TasksRestartd(appId, _) => lockedApps -= appId
 
     case RetrieveRunningDeployments =>
       deploymentManager forward RetrieveRunningDeployments
@@ -422,7 +424,7 @@ object MarathonSchedulerActor {
 
   /*froad*/
   case class RestartTasks(appId: PathId, tasks: Iterable[Task]) extends Command {
-    def answer: Event = TasksRestart(appId, tasks)
+    def answer: Event = TasksRestartd(appId, tasks)
   }
 
   case object RetrieveRunningDeployments
@@ -434,7 +436,7 @@ object MarathonSchedulerActor {
   case class TasksKilled(appId: PathId, tasks: Iterable[Task]) extends Event
 
   /*froad*/
-  case class TasksRestart(appId: PathId, tasks: Iterable[Task]) extends Event
+  case class TasksRestartd(appId: PathId, tasks: Iterable[Task]) extends Event
 
   case class RunningDeployments(plans: Seq[DeploymentStepInfo])
 

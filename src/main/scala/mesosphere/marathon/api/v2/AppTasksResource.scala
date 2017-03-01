@@ -86,7 +86,7 @@ class AppTasksResource @Inject() (
     @QueryParam("scale")@DefaultValue("false") scale: Boolean = false,
     @QueryParam("force")@DefaultValue("false") force: Boolean = false,
     @QueryParam("wipe")@DefaultValue("false") wipe: Boolean = false,
-    @QueryParam("restart")@DefaultValue("false") restart: Boolean = false,
+    @QueryParam("reload")@DefaultValue("false") restart: Boolean = false,
     @Context req: HttpServletRequest): Response = authenticated(req) { implicit identity =>
     val pathId = appId.toRootPath
 

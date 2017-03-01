@@ -15,7 +15,7 @@ import mesosphere.marathon.core.event.MesosStatusUpdateEvent
 //import org.apache.mesos.{ Protos => MesosProtos }
 import scala.collection.mutable
 import scala.concurrent.Promise
-
+import scala.util.Try
 /**
   * An actor that handles killing tasks in chunks and depending on the task state.
   * Lost tasks will simply be expunged from state, while active tasks will be killed
@@ -123,6 +123,9 @@ private[impl] class TaskKillServiceActor(
       log.info(s"froad:restartTask for restart:${task.taskId.mesosTaskId}");
       driverHolder.driver.foreach(_.restartTask(task.taskId.mesosTaskId))
     }
+
+    promise.tryComplete(Try(Done))
+
     /**
       * tasks.foreach { task =>
       * val ttask1: MesosProtos.TaskID = task.taskId.mesosTaskId
