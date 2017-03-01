@@ -733,8 +733,9 @@ trait AppAndGroupFormats {
     import mesosphere.marathon.state.AppDefinition._
     (
       (__ \ "minimumHealthCapacity").readNullable[Double].withDefault(DefaultUpgradeStrategy.minimumHealthCapacity) ~
-      (__ \ "maximumOverCapacity").readNullable[Double].withDefault(DefaultUpgradeStrategy.maximumOverCapacity)
-    ) (UpgradeStrategy(_, _))
+      (__ \ "maximumOverCapacity").readNullable[Double].withDefault(DefaultUpgradeStrategy.maximumOverCapacity) ~
+      (__ \ "numupgradeStrategy").readNullable[Double].withDefault(DefaultUpgradeStrategy.numupgradeStrategy)
+    ) (UpgradeStrategy(_, _, _))
   }
 
   implicit lazy val ConstraintFormat: Format[Constraint] = Format(

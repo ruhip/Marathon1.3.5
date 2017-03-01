@@ -86,6 +86,7 @@ class AppTasksResource @Inject() (
     @QueryParam("scale")@DefaultValue("false") scale: Boolean = false,
     @QueryParam("force")@DefaultValue("false") force: Boolean = false,
     @QueryParam("wipe")@DefaultValue("false") wipe: Boolean = false,
+    @QueryParam("restart")@DefaultValue("false") restart: Boolean = false,
     @Context req: HttpServletRequest): Response = authenticated(req) { implicit identity =>
     val pathId = appId.toRootPath
 
@@ -101,8 +102,14 @@ class AppTasksResource @Inject() (
       val deploymentF = taskKiller.killAndScale(pathId, findToKill, force)
       deploymentResult(result(deploymentF))
     } else {
-      reqToResponse(taskKiller.kill(pathId, findToKill, wipe)) {
-        tasks => ok(jsonObjString("tasks" -> tasks))
+      if (restart) {
+        reqToResponse(taskKiller.kill(pathId, findToKill, wipe, restart)) {
+          tasks => ok(jsonObjString("tasks" -> tasks))
+        }
+      } else {
+        reqToResponse(taskKiller.kill(pathId, findToKill, wipe)) {
+          tasks => ok(jsonObjString("tasks" -> tasks))
+        }
       }
     }
   }
@@ -116,6 +123,7 @@ class AppTasksResource @Inject() (
     @QueryParam("scale")@DefaultValue("false") scale: Boolean = false,
     @QueryParam("force")@DefaultValue("false") force: Boolean = false,
     @QueryParam("wipe")@DefaultValue("false") wipe: Boolean = false,
+    @QueryParam("reload")@DefaultValue("false") restart: Boolean = false,
     @Context req: HttpServletRequest): Response = authenticated(req) { implicit identity =>
     val pathId = appId.toRootPath
     def findToKill(appTasks: Iterable[Task]): Iterable[Task] = appTasks.find(_.taskId == Task.Id(id))
@@ -126,8 +134,14 @@ class AppTasksResource @Inject() (
       val deploymentF = taskKiller.killAndScale(pathId, findToKill, force)
       deploymentResult(result(deploymentF))
     } else {
-      reqToResponse(taskKiller.kill(pathId, findToKill, wipe)) {
-        tasks => tasks.headOption.fold(unknownTask(id))(task => ok(jsonObjString("task" -> task)))
+      if (restart) {
+        reqToResponse(taskKiller.kill(pathId, findToKill, wipe, restart)) {
+          tasks => tasks.headOption.fold(unknownTask(id))(task => ok(jsonObjString("task" -> task)))
+        }
+      } else {
+        reqToResponse(taskKiller.kill(pathId, findToKill, wipe)) {
+          tasks => tasks.headOption.fold(unknownTask(id))(task => ok(jsonObjString("task" -> task)))
+        }
       }
     }
   }

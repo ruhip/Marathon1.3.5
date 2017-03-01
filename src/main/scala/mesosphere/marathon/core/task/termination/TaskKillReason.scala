@@ -18,6 +18,8 @@ object TaskKillReason {
   /** The task is killed because of an incoming http request */
   case object KillingTasksViaApi extends TaskKillReason
 
+  case object RestartTasksViaApi extends TaskKillReason
+
   /** The task is killed because a new version is being deployed */
   case object Upgrading extends TaskKillReason
 

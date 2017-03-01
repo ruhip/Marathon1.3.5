@@ -11,6 +11,8 @@ import mesosphere.marathon.core.event.UnknownTaskTerminated
 import mesosphere.marathon.state.Timestamp
 import mesosphere.marathon.core.event.MesosStatusUpdateEvent
 
+//import org.apache.mesos.Protos.TaskID
+//import org.apache.mesos.{ Protos => MesosProtos }
 import scala.collection.mutable
 import scala.concurrent.Promise
 
@@ -70,6 +72,9 @@ private[impl] class TaskKillServiceActor(
     case KillTasks(tasks, promise) =>
       killTasks(tasks, promise)
 
+    case RestartTasks(tasks, promise) =>
+      restartTasks(tasks, promise)
+
     case Terminal(event) if inFlight.contains(event.taskId) || tasksToKill.contains(event.taskId) =>
       handleTerminal(event.taskId)
 
@@ -96,6 +101,56 @@ private[impl] class TaskKillServiceActor(
       )
     }
     processKills()
+  }
+
+  /*froad*/
+  def restartTasks(tasks: Iterable[Task], promise: Promise[Done]): Unit = {
+    log.info("froad:enter restartTasks Adding {} tasks to queue; setting up child actor to track progress", tasks.size)
+    /**
+      *
+      * setupProgressActor(tasks.map(_.taskId), promise)
+      * tasks.foreach { task =>
+      * tasksToKill.update(
+      * task.taskId,
+      * ToKill(task.taskId, maybeTask = Some(task), attempts = 0)
+      * )
+      * }
+      */
+    // processRestarts()
+
+    tasks.foreach { task =>
+      // val ttask1: MesosProtos.TaskID = task.taskId.mesosTaskId
+      log.info(s"froad:restartTask for restart:${task.taskId.mesosTaskId}");
+      driverHolder.driver.foreach(_.restartTask(task.taskId.mesosTaskId))
+    }
+    /**
+      * tasks.foreach { task =>
+      * val ttask1: MesosProtos.TaskID = task.taskId.mesosTaskId
+      * val ttask2: MesosProtos.TaskID = MesosProtos.TaskID.newBuilder().setValue(ttask1 + s"_restart").build()
+      * log.info(s"froad:restartTask for restart:${ttask2}");
+      * //driverHolder.driver.foreach(_.killTask(ttask2))
+      * driverHolder.driver.foreach(_.restartTask(ttask2))
+      * }
+      */
+
+    /**
+      * def buildTaskId(id: String): TaskID =
+      * TaskID.newBuilder()
+      * .setValue(id)
+      * .build()
+      */
+    /**
+      * TaskID ttaskid = task.taskId.mesosTaskId
+      * TaskID ttask2 = buildTaskId(s"123")
+      * //driverHolder.driver.foreach(_.killTask(task.taskId.mesosTaskId + Protos.TaskID("123"))
+      * driverHolder.driver.foreach(_.killTask(ttaskid + ttask2))
+      */
+    /**
+      * tasks.foreach { task =>
+      * log.info(s"froad:killTask for restart:${task.taskId}");
+      * driverHolder.driver.foreach(_.killTask(task.taskId.mesosTaskId + s"_restart"))
+      * }
+      */
   }
 
   def setupProgressActor(taskIds: Iterable[Task.Id], promise: Promise[Done]): Unit = {
@@ -167,6 +222,10 @@ private[termination] object TaskKillServiceActor {
 
   sealed trait Request extends InternalRequest
   case class KillTasks(tasks: Iterable[Task], promise: Promise[Done]) extends Request
+
+  /*froad*/
+  case class RestartTasks(tasks: Iterable[Task], promise: Promise[Done]) extends Request
+
   case class KillUnknownTaskById(taskId: Task.Id) extends Request
 
   sealed trait InternalRequest

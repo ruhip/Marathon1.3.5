@@ -21,6 +21,13 @@ trait TaskKillService {
   def killTasks(tasks: Iterable[Task], reason: TaskKillReason): Future[Done]
 
   /**
+    * froad:restartTasks,containers
+    *
+    */
+
+  def restartTasks(tasks: Iterable[Task], reason: TaskKillReason): Future[Done]
+
+  /**
     * Kill the given task. The implementation should add the task onto
     * a queue that is processed short term and will eventually kill the task.
     *

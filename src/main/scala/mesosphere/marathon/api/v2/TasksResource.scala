@@ -106,6 +106,7 @@ class TasksResource @Inject() (
     @QueryParam("scale")@DefaultValue("false") scale: Boolean,
     @QueryParam("force")@DefaultValue("false") force: Boolean,
     @QueryParam("wipe")@DefaultValue("false") wipe: Boolean,
+    @QueryParam("reload")@DefaultValue("false") reload: Boolean,
     body: Array[Byte],
     @Context req: HttpServletRequest): Response = authenticated(req) { implicit identity =>
 
@@ -133,13 +134,38 @@ class TasksResource @Inject() (
       ok(jsonObjString("tasks" -> killed.map(task => EnrichedTask(task.taskId.runSpecId, task, Seq.empty))))
     }
 
+    def restartTasks(toKill: Map[PathId, Iterable[Task]]): Response = {
+
+      /**
+        * val affectedApps = tasksToAppId.values.flatMap(appId => result(groupManager.app(appId))).toSeq
+        * // starting to kill tasks
+        */
+      /**
+        * affectedApps.foreach(checkAuthorization(UpdateRunSpec, _))
+        */
+
+      toKill.map {
+        case (appId, tasks) => taskKiller.kill(appId, _ => tasks, wipe, reload)
+      }
+      ok
+      //ok(jsonObjString("tasks" -> killed.map(task => EnrichedTask(task.taskId.runSpecId, task, Seq.empty)
+      /**
+        * val killed = result(Future.sequence(toKill.map {
+        * case (appId, tasks) => taskKiller.kill(appId, _ => tasks, wipe)
+        * })).flatten
+        * ok(jsonObjString("tasks" -> killed.map(task => EnrichedTask(task.taskId.runSpecId, task, Seq.empty))))
+        */
+    }
+
     val tasksByAppId = tasksToAppId
       .flatMap { case (taskId, appId) => taskTracker.tasksByAppSync.task(Task.Id(taskId)) }
       .groupBy { task => task.taskId.runSpecId }
       .map{ case (appId, tasks) => appId -> tasks }
 
     if (scale) scaleAppWithKill(tasksByAppId)
-    else killTasks(tasksByAppId)
+    else if (reload) {
+      restartTasks(tasksByAppId)
+    } else killTasks(tasksByAppId)
   }
 
   private def toTaskState(state: String): Option[MarathonTaskStatus] = state.toLowerCase match {

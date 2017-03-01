@@ -30,7 +30,7 @@ class TaskKiller @Inject() (
   def kill(
     appId: PathId,
     findToKill: (Iterable[Task] => Iterable[Task]),
-    wipe: Boolean = false)(implicit identity: Identity): Future[Iterable[Task]] = {
+    wipe: Boolean = false, restart: Boolean = false)(implicit identity: Identity): Future[Iterable[Task]] = {
 
     result(groupManager.app(appId)) match {
       case Some(app) =>
@@ -46,7 +46,13 @@ class TaskKiller @Inject() (
           if (wipe) await(expunge(foundTasks)) // linter:ignore UseIfExpression
 
           val launchedTasks = foundTasks.filter(_.launched.isDefined)
-          if (launchedTasks.nonEmpty) service.killTasks(appId, launchedTasks)
+          if (launchedTasks.nonEmpty) {
+            if (restart) {
+              service.restartTasks(appId, launchedTasks)
+            } else {
+              service.killTasks(appId, launchedTasks)
+            }
+          }
           // Return killed *and* expunged tasks.
           // The user only cares that all tasks won't exist eventually. That's why we send all tasks back and not just
           // the killed tasks.

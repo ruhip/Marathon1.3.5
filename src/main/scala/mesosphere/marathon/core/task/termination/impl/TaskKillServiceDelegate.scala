@@ -23,6 +23,17 @@ private[termination] class TaskKillServiceDelegate(actorRef: ActorRef) extends T
     promise.future
   }
 
+  /*froad*/
+  override def restartTasks(tasks: Iterable[Task], reason: TaskKillReason): Future[Done] = {
+    log.info(
+      s"froad:restarting ${tasks.size} tasks for reason: $reason (ids: {} ...)",
+      tasks.take(3).map(_.taskId).mkString(","))
+
+    val promise = Promise[Done]
+    actorRef ! RestartTasks(tasks, promise)
+    promise.future
+  }
+
   override def killTask(task: Task, reason: TaskKillReason): Future[Done] = {
     killTasks(Seq(task), reason)
   }

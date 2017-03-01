@@ -53,6 +53,7 @@ private class DeploymentActor(
 
   def receive: Receive = {
     case NextStep if steps.hasNext =>
+      log.info(s"froad:enter DeploymentActor Receive.")
       val step = steps.next()
       currentStepNr += 1
       currentStep = Some(step)
@@ -79,12 +80,14 @@ private class DeploymentActor(
   }
 
   def performStep(step: DeploymentStep): Future[Unit] = {
+    log.info(s"froad:enter DeploymentActor performStep.")
     if (step.actions.isEmpty) {
       Future.successful(())
     } else {
       val status = DeploymentStatus(plan, step)
       eventBus.publish(status)
 
+      log.info(s"froad:enter DeploymentActor action case.")
       val futures = step.actions.map { action =>
         // ensure health check actors are in place before tasks are launched
         healthCheckManager.addAllFor(action.app, Seq.empty)
@@ -105,6 +108,7 @@ private class DeploymentActor(
   }
 
   def startApp(app: AppDefinition, scaleTo: Int, status: DeploymentStatus): Future[Unit] = {
+    log.info(s"froad:enter DeploymentActor startApp.")
     val promise = Promise[Unit]()
     context.actorOf(
       AppStartActor.props(deploymentManager, status, driver, scheduler, launchQueue, taskTracker,
@@ -116,6 +120,7 @@ private class DeploymentActor(
   def scaleApp(app: AppDefinition, scaleTo: Int,
     toKill: Option[Iterable[Task]],
     status: DeploymentStatus): Future[Unit] = {
+    log.info(s"froad:enter DeploymentActor scaleApp:${app.id}.")
     val runningTasks = taskTracker.appTasksLaunchedSync(app.id)
     def killToMeetConstraints(notSentencedAndRunning: Iterable[Task], toKillCount: Int) =
       Constraints.selectTasksToKill(app, notSentencedAndRunning, toKillCount)
@@ -140,6 +145,7 @@ private class DeploymentActor(
   }
 
   def stopApp(app: AppDefinition): Future[Unit] = {
+    log.info(s"froad:enter DeploymentActor stopApp:${app.id}.")
     val tasks = taskTracker.appTasksLaunchedSync(app.id)
     // TODO: the launch queue is purged in stopApp, but it would make sense to do that before calling kill(tasks)
     killService.killTasks(tasks, TaskKillReason.DeletingApp).map(_ => ()).andThen {
@@ -148,6 +154,7 @@ private class DeploymentActor(
   }
 
   def restartApp(app: AppDefinition, status: DeploymentStatus): Future[Unit] = {
+    log.info(s"froad:enter DeploymentActor restartApp.")
     if (app.instances == 0) {
       Future.successful(())
     } else {
@@ -159,6 +166,7 @@ private class DeploymentActor(
   }
 
   def resolveArtifacts(app: AppDefinition, urls: Map[URL, String]): Future[Unit] = {
+    log.info(s"froad:enter DeploymentActor resolveArtifacts.")
     val promise = Promise[Boolean]()
     context.actorOf(Props(classOf[ResolveArtifactsActor], app, urls, promise, storage))
     promise.future.map(_ => ())

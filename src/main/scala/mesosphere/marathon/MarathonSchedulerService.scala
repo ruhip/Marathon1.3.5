@@ -151,6 +151,12 @@ class MarathonSchedulerService @Inject() (
     schedulerActor ! KillTasks(appId, tasks)
   }
 
+  def restartTasks(
+    appId: PathId,
+    tasks: Iterable[Task]): Unit = {
+    schedulerActor ! RestartTasks(appId, tasks)
+  }
+
   //Begin Service interface
 
   override def startUp(): Unit = {

@@ -325,7 +325,7 @@ message StorageVersion {
 message UpgradeStrategyDefinition {
   required double minimumHealthCapacity = 1;
   optional double maximumOverCapacity = 2 [default = 1.0];;
-  optional double numupgradeStrategy = 3 [default = -1.0];;
+  optional double numupgradeStrategy = 3 [default = 1.0];;
 }
 
 message GroupDefinition {

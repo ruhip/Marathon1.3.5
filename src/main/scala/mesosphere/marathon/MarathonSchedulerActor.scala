@@ -160,17 +160,46 @@ class MarathonSchedulerActor private (
       deploy(sender(), cmd)
 
     case cmd @ KillTasks(appId, tasks) =>
+      log.info(s"froad:api enter KillTasks");
       val origSender = sender()
       withLockFor(appId) {
         val res = async {
           await(killService.killTasks(tasks, TaskKillReason.KillingTasksViaApi))
           val app = await(appRepository.currentVersion(appId))
           app.foreach(schedulerActions.scale(driver, _))
+
+          /**
+            * log.info(s"froad:api enter KillTasks2");
+            * await(killService.restartTasks(tasks, TaskKillReason.KillingTasksViaApi))
+            * val app = await(appRepository.currentVersion(appId))
+            */
         }
 
         res onComplete { _ =>
           self ! cmd.answer // unlock app
         }
+
+        res.sendAnswer(origSender, cmd)
+      }
+
+    case cmd @ RestartTasks(appId, tasks) =>
+      log.info(s"froad:api enter RestartTasks");
+      val origSender = sender()
+      //withLockFor(appId) {
+      val res = async {
+        /**
+          * await(killService.killTasks(tasks, TaskKillReason.KillingTasksViaApi))
+          * val app = await(appRepository.currentVersion(appId))
+          * app.foreach(schedulerActions.scale(driver, _))
+          */
+        log.info(s"froad:api enter RestartTask2");
+        await(killService.restartTasks(tasks, TaskKillReason.RestartTasksViaApi))
+        val app = await(appRepository.currentVersion(appId))
+      }
+
+      res onComplete { _ =>
+        self ! cmd.answer // unlock app
+        //}
 
         res.sendAnswer(origSender, cmd)
       }
@@ -391,6 +420,11 @@ object MarathonSchedulerActor {
     def answer: Event = TasksKilled(appId, tasks)
   }
 
+  /*froad*/
+  case class RestartTasks(appId: PathId, tasks: Iterable[Task]) extends Command {
+    def answer: Event = TasksRestart(appId, tasks)
+  }
+
   case object RetrieveRunningDeployments
 
   sealed trait Event
@@ -398,6 +432,9 @@ object MarathonSchedulerActor {
   case object TasksReconciled extends Event
   case class DeploymentStarted(plan: DeploymentPlan) extends Event
   case class TasksKilled(appId: PathId, tasks: Iterable[Task]) extends Event
+
+  /*froad*/
+  case class TasksRestart(appId: PathId, tasks: Iterable[Task]) extends Event
 
   case class RunningDeployments(plans: Seq[DeploymentStepInfo])
 
